@@ -1,3 +1,4 @@
+#+private file
 package game
 
 import "core:mem"
@@ -10,14 +11,39 @@ Game :: struct {
 
 }
 
+@private
 DT :: 1 / 50.0
 
 prev_time := time.now()
 acc : f64
 
+@private
 game : Game
+@private
 prev_game : Game
 
+@private
+game_start :: proc() {
+    
+}
+
+@private
+game_exit :: proc() {
+
+}
+
+game_tick :: proc() {
+
+}
+
+game_draw :: proc(alpha : f64) {
+    gfx_push_cmd({
+        xform = xform_make(scale = {0.25, 0.25, 1}),
+        tint = Vec4{1, 0, 1, 1}
+    })
+}
+
+@private
 game_loop :: proc() {
     input_poll_events()
 
@@ -39,21 +65,7 @@ game_loop :: proc() {
     }
     
     alpha := acc / DT
+
     game_draw(alpha)
-}
-
-game_start :: proc() {
-    
-}
-
-game_exit :: proc() {
-
-}
-
-game_tick :: proc() {
-
-}
-
-game_draw :: proc(alpha : f64) {
-
+    gfx_execute()
 }

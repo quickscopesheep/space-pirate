@@ -228,18 +228,22 @@ input_mb_up :: proc(mb : Mouse_Button) -> bool {
     return .RELEASED in mbs[mb]
 }
 
+@private
 input_mouse_pos :: proc() -> Vec2 {
     return mouse_pos
 }
 
+@private
 input_mouse_scroll :: proc() -> f32 {
     return mouse_scroll
 }
 
+@private
 input_delta_mouse_pos :: proc() -> Vec2 {
     return delta_mouse_pos
 }
 
+@private
 input_delta_mouse_scroll :: proc() -> f32 {
     return delta_mouse_scroll
 }

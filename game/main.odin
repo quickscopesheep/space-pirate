@@ -2,19 +2,17 @@ package game
 
 import "base:runtime"
 import sapp "sokol:app/"
-import sg "sokol:gfx/"
-
-import sglue "sokol:glue/"
-import slog "sokol:log/"
 
 init_cb :: proc "c"() {
     context = runtime.default_context()
+    gfx_init()
     game_start()
 }
 
 cleanup_cb :: proc "c"() {
     context = runtime.default_context()
     game_exit()
+    gfx_shutdown()
 }
 
 frame_cb :: proc "c"() {
