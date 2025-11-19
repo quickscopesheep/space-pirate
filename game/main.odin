@@ -5,7 +5,7 @@ import sapp "sokol:app/"
 
 init_cb :: proc "c"() {
     context = runtime.default_context()
-    gfx_init()
+    gfx_init(int(sapp.width()), int(sapp.height()))
     game_start()
 }
 

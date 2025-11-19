@@ -38,8 +38,8 @@ game_tick :: proc() {
 
 game_draw :: proc(alpha : f64) {
     gfx_push_cmd({
-        xform = xform_make(scale = {0.25, 0.25, 1}),
-        tint = Vec4{1, 0, 1, 1}
+        xform = xform_make(pos = {0, 0, -1.0}, scale = {1, 1, 1}),
+        tint = Vec4{1, 0, 0, 1}
     })
 }
 

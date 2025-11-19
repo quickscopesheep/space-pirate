@@ -20,6 +20,14 @@ Draw_Cmd :: struct {
     uv1 : Vec2,
 }
 
+Coord_Mode :: enum {
+    CLIP,
+    PROJECTED,
+    VIEW_PROJECTED
+}
+
+fb_w, fb_h : int
+
 draw_cmds : [MAX_DRAWS] Draw_Cmd
 draw_cmds_top : int
 
@@ -30,7 +38,14 @@ per_instance_buffer : sg.Buffer
 per_instance_buffer_view : sg.View
 
 lit_shader : sg.Shader
-lit_pipeline : sg.Pipeline
+lit_pip : sg.Pipeline
+
+coord_mode : Coord_Mode
+V, P : Mat4
+
+cam_scroll : Vec3
+cam_roll : f32
+cam_size : f32
 
 gfx_init_resources :: proc() {
     rect_vertex_data := []f32 {
@@ -80,7 +95,7 @@ gfx_init_resources :: proc() {
     })
 
     lit_shader = sg.make_shader(shaders.lit_shader_desc(sg.query_backend()))
-    lit_pipeline = sg.make_pipeline({
+    lit_pip = sg.make_pipeline({
         shader = lit_shader,
 
         index_type = .UINT16,
@@ -95,7 +110,13 @@ gfx_init_resources :: proc() {
 }
 
 @private
-gfx_init :: proc() {
+gfx_init :: proc(w, h : int) {
+    fb_w, fb_h = w, h
+
+    coord_mode = .VIEW_PROJECTED
+    gfx_set_cam_scroll({0, 0, 0})
+    gfx_set_cam_size(10)
+
     sg.setup({
         environment = sglue.environment(),
         logger = {
@@ -107,7 +128,32 @@ gfx_init :: proc() {
 }
 
 @private
+gfx_set_coord_mode :: proc(mode : Coord_Mode) {
+    coord_mode = mode
+}
+
+gfx_set_cam_scroll :: proc(pos : Vec3) {
+    cam_scroll = pos
+    V = view_make(pos, cam_roll)
+}
+
+gfx_set_cam_size :: proc(size : f32) {
+    cam_size = size
+    P = projection_make(cam_size, f32(fb_w) / f32(fb_h))
+}
+
+gfx_set_cam_roll :: proc(roll : f32) {
+    cam_roll = roll
+    V = view_make(cam_scroll, roll)
+}
+
+@private
 gfx_push_cmd :: proc (cmd : Draw_Cmd) {
+    cmd := cmd
+
+    if coord_mode == .VIEW_PROJECTED do cmd.xform = P * V * cmd.xform
+    else if coord_mode == .PROJECTED do cmd.xform = P * cmd.xform
+
     draw_cmds[draw_cmds_top] = cmd
     draw_cmds_top += 1
 }
@@ -130,7 +176,7 @@ gfx_execute :: proc() {
         swapchain = sglue.swapchain()
     })
 
-    sg.apply_pipeline(lit_pipeline)
+    sg.apply_pipeline(lit_pip)
 
     sg.apply_bindings({
         vertex_buffers = {0 = rect_vertex_buffer},
