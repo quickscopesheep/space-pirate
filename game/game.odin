@@ -1,4 +1,3 @@
-#+private file
 package game
 
 import "core:mem"
@@ -7,27 +6,29 @@ import "core:time"
 
 import "core:fmt"
 
-Game :: struct {
+MAX_ENTITIES :: 256
 
+Game :: struct {
+    entities : struct {    
+        dense : [MAX_ENTITIES] Entity,
+        dense_next : i16,
+        sparse : [MAX_ENTITIES] i16,
+        sparse_next : i16
+    }
 }
 
-@private
 DT :: 1 / 50.0
 
 prev_time := time.now()
 acc : f64
 
-@private
 game : Game
-@private
 prev_game : Game
 
-@private
 game_start :: proc() {
-    
+    entity_init_array(&game)
 }
 
-@private
 game_exit :: proc() {
 
 }
@@ -43,7 +44,6 @@ game_draw :: proc(alpha : f64) {
     })
 }
 
-@private
 game_loop :: proc() {
     input_poll_events()
 

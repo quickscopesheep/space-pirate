@@ -1,4 +1,3 @@
-#+private file
 package game
 
 import sapp "sokol:app"
@@ -153,13 +152,11 @@ delta_mouse_scroll : f32
 events : [64] sapp.Event
 ev_top : u8
 
-@private
 input_accumulate_event :: proc(ev : sapp.Event) {
     events[ev_top] = ev
     ev_top += 1
 }
 
-@private
 input_poll_events :: proc() {
     for ev in events[:ev_top] {
         #partial switch ev.type {
@@ -186,64 +183,52 @@ input_poll_events :: proc() {
     ev_top = 0
 }
 
-@private
 input_normalise :: proc(num_ticks : int) {
     delta_mouse_pos /= f32(num_ticks)
     delta_mouse_scroll /= f32(num_ticks)
 }
 
-@private
 input_reset_temp :: proc() {
     for &key in keys do key &= {.HELD}
     for &mb in mbs do mb &= {.HELD}
 }
 
-@private
 input_key :: proc(key : Key) -> bool {
     return .HELD in keys[key]
 }
 
-@private
 input_key_down :: proc(key : Key) -> bool {
     return .PRESSED in keys[key]
 }
 
-@private
 input_key_up :: proc(key : Key) -> bool {
     return .RELEASED in keys[key]
 }
 
-@private
 input_mb :: proc(mb : Mouse_Button) -> bool {
     return .HELD in mbs[mb]
 }
 
-@private
 input_mb_down :: proc(mb : Mouse_Button) -> bool {
     return .PRESSED in mbs[mb]
 }
 
-@private
 input_mb_up :: proc(mb : Mouse_Button) -> bool {
     return .RELEASED in mbs[mb]
 }
 
-@private
 input_mouse_pos :: proc() -> Vec2 {
     return mouse_pos
 }
 
-@private
 input_mouse_scroll :: proc() -> f32 {
     return mouse_scroll
 }
 
-@private
 input_delta_mouse_pos :: proc() -> Vec2 {
     return delta_mouse_pos
 }
 
-@private
 input_delta_mouse_scroll :: proc() -> f32 {
     return delta_mouse_scroll
 }
