@@ -6,27 +6,25 @@ import "core:time"
 
 import "core:fmt"
 
-MAX_ENTITIES :: 256
 
 Game :: struct {
-    entities : struct {    
-        dense : [MAX_ENTITIES] Entity,
-        dense_next : i16,
-        sparse : [MAX_ENTITIES] i16,
-        sparse_next : i16
-    }
+    entities : Entity_Array
 }
 
 DT :: 1 / 50.0
 
-prev_time := time.now()
+prev_time := time.tick_now()
 acc : f64
 
 game : Game
 prev_game : Game
 
+player : Entity_Id
+
 game_start :: proc() {
-    entity_init_array(&game)
+    entity_init_array(&game.entities)
+
+    player, _ = entity_create(&game.entities, .PLAYER)
 }
 
 game_exit :: proc() {
@@ -34,23 +32,20 @@ game_exit :: proc() {
 }
 
 game_tick :: proc() {
-
+    entity_update()
 }
 
 game_draw :: proc(alpha : f64) {
-    gfx_set_coord_mode(.PROJECTED)
+    gfx_set_coord_mode(.VIEW_PROJECTED)
 
-    gfx_push_cmd({
-        xform = xform_make(pos = {0, 0, 0}, roll = roll_make(0), scale = {1, 1, 1}),
-        tint = Vec4{1, 0, 0, 1}
-    })
+    entity_draw(alpha)
 }
 
 game_loop :: proc() {
     input_poll_events()
 
-    frame_duration := time.duration_seconds(time.since(prev_time))
-    prev_time := time.now()
+    frame_duration := time.duration_seconds(time.tick_since(prev_time))
+    prev_time = time.tick_now()
 
     acc += frame_duration
     num_ticks := int(math.floor(acc / DT))
