@@ -11,13 +11,12 @@ Game :: struct {
     entities : Entity_Array
 }
 
-DT :: 1 / 50.0
+DT :: 1 / 60.0
 
 prev_time := time.tick_now()
 acc : f64
 
 game : Game
-prev_game : Game
 
 player : Entity_Id
 
@@ -54,7 +53,6 @@ game_loop :: proc() {
     if num_ticks > 0 {
         input_normalise(num_ticks)
         for i in 0..<num_ticks {
-            mem.copy_non_overlapping(&prev_game, &game, size_of(Game))
             game_tick()
 
             input_reset_temp()

@@ -115,7 +115,7 @@ gfx_init :: proc(w, h : int) {
 
     coord_mode = .VIEW_PROJECTED
     gfx_set_cam_scroll({0, 0, 0})
-    gfx_set_cam_size(10)
+    gfx_set_cam_size(32)
 
     sg.setup({
         environment = sglue.environment(),

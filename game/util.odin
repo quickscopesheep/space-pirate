@@ -33,6 +33,9 @@ view_make :: proc(view_pos := Vec3{0, 0, 0}, view_roll : f32) -> (V : Mat4) {
 }
 
 projection_make :: proc(size, aspect : f32) -> (P : Mat4) {
+    size := size
+    size /= 2
+
     far := f32(1000)
     near := f32(0.01)
 

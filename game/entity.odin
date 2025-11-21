@@ -3,6 +3,12 @@ package game
 import "core:fmt"
 import "core:mem"
 
+import "core:math"
+import "core:math/linalg"
+
+//TODO: BLENDED parapoly struct
+//use refletction to find all types under a struct 
+
 MAX_ENTITIES :: 256
 
 Entity_Kind :: enum{
@@ -130,21 +136,27 @@ entity_draw :: proc(alpha : f64) {
 }
 
 player_update :: proc(ref : ^Entity) {
-    if input_key(.UP) {
-        ref.pos += Vec3{0, 1, 0} * DT
+    PLAYER_SPEED :: 8.0
+    input_vect := Vec3{}
+
+    if input_key(.W) {
+        input_vect += Vec3{0, -1, 0}
     }
 
-    if input_key(.DOWN) {
-        ref.pos += Vec3{0, -1, 0} * DT
+    if input_key(.S) {
+        input_vect += Vec3{0, 1, 0}
     }
 
-    if input_key(.LEFT) {
-        ref.pos += Vec3{-1, 0, 0} * DT
+    if input_key(.A) {
+        input_vect += Vec3{-1, 0, 0}
     }
 
-    if input_key(.RIGHT) {
-        ref.pos += Vec3{1, 0, 0} * DT
+    if input_key(.D) {
+        input_vect += Vec3{1, 0, 0}
     }
+
+    if linalg.length(input_vect) != 0.0 do input_vect = linalg.normalize(input_vect)
+    ref.pos += input_vect * PLAYER_SPEED * DT
 }
 
 player_draw :: proc(ref : ^Entity, alpha : f64) {
