@@ -37,8 +37,10 @@ game_tick :: proc() {
 }
 
 game_draw :: proc(alpha : f64) {
+    gfx_set_coord_mode(.PROJECTED)
+
     gfx_push_cmd({
-        xform = xform_make(pos = {0, 0, -1.0}, scale = {1, 1, 1}),
+        xform = xform_make(pos = {0, 0, 0}, roll = roll_make(0), scale = {1, 1, 1}),
         tint = Vec4{1, 0, 0, 1}
     })
 }
