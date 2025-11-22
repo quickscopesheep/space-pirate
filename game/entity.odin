@@ -24,8 +24,9 @@ Entity :: struct {
     id : Entity_Id,
     kind : Entity_Kind,
 
-    pos : Vec3,
-    roll : f32,
+    pos, last_pos : Vec3,
+
+    roll, last_roll : f32,
     scale : Vec3
 }
 
@@ -120,6 +121,9 @@ entity_update :: proc() {
             case:
                 break
         }
+
+        ref.last_pos = ref.pos
+        ref.last_roll = ref.roll
     }
 }
 
@@ -160,8 +164,12 @@ player_update :: proc(ref : ^Entity) {
 }
 
 player_draw :: proc(ref : ^Entity, alpha : f64) {
-    gfx_push_cmd({
-        xform = xform_make(pos = ref.pos + {0, 0, 1}, roll = ref.roll, scale = {1, 1, 1}),
-        tint = Vec4{1, 0, 0, 1}
+    uv0, uv1 := sprite_to_uv(SPRITE_RUPERT, .WORLD)
+
+    gfx_push_cmd(.WORLD, {
+        xform = xform_make(pos = lerp(ref.last_pos, ref.pos, f32(alpha)), roll = lerp(ref.last_roll, ref.roll, f32(alpha)), scale = {1, 1, 1}),
+        tint = Vec4{1, 1, 1, 1},
+        uv0 = uv0,
+        uv1 = uv1
     })
 }

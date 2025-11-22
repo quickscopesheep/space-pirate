@@ -1,14 +1,15 @@
 package game
 
+import "base:runtime"
 import "core:mem"
 import "core:math"
 import "core:time"
 
 import "core:fmt"
 
-
 Game :: struct {
-    entities : Entity_Array
+    entities : Entity_Array,
+    player : Entity_Id
 }
 
 DT :: 1 / 60.0
@@ -18,12 +19,10 @@ acc : f64
 
 game : Game
 
-player : Entity_Id
-
 game_start :: proc() {
     entity_init_array(&game.entities)
 
-    player, _ = entity_create(&game.entities, .PLAYER)
+    game.player, _ = entity_create(&game.entities, .PLAYER)
 }
 
 game_exit :: proc() {
@@ -36,7 +35,6 @@ game_tick :: proc() {
 
 game_draw :: proc(alpha : f64) {
     gfx_set_coord_mode(.VIEW_PROJECTED)
-
     entity_draw(alpha)
 }
 
@@ -63,4 +61,6 @@ game_loop :: proc() {
 
     game_draw(alpha)
     gfx_execute()
+
+    free_all(context.temp_allocator)
 }

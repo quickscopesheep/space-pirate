@@ -2,7 +2,7 @@
 @header import sg "sokol:gfx/"
 @header import "core:math/linalg/glsl"
 
-@module lit
+@module unlit
 
 @ctype mat4 glsl.mat4
 @ctype vec4 glsl.vec4
@@ -53,15 +53,12 @@ in struct VS_OUT {
     vec2 uv;
 } vs_out;
 
-layout(binding=1) uniform texture2D tex;
-layout(binding=0) uniform sampler smp;
-
 out vec4 frag;
 
 void main() {
-    frag = texture(sampler2D(tex, smp), vs_out.uv) * vs_out.color;
+    frag = vs_out.color;
 }
 
 @end
 
-@program lit vs fs
+@program unlit vs fs
