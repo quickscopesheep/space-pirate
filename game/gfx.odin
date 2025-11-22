@@ -1,5 +1,9 @@
-#+private file
 package game
+
+import "core:image"
+import "core:c"
+
+import stbi "vendor:stb/image"
 
 import sg "sokol:gfx/"
 
@@ -8,10 +12,25 @@ import slog "sokol:log/"
 
 import "shaders"
 
-MAX_DRAWS :: 1024
+MAX_DRAWS :: 256
 
 //keep all game shit in one image
 //keep all UI shit in different image
+
+Textures :: enum u8 {
+    WORLD,
+    UI
+}
+
+texture_paths := [Textures] cstring {
+    .WORLD = "data/world.png",
+    .UI = "data/ui.png"
+}
+
+Texture :: struct {
+    image : sg.Image,
+    view : sg.View
+}
 
 Draw_Cmd :: struct {
     xform : Mat4,
@@ -20,25 +39,33 @@ Draw_Cmd :: struct {
     uv1 : Vec2,
 }
 
+Draw_Channel :: struct {
+    shader : sg.Shader,
+    pip : sg.Pipeline,
+    tex : Texture,
+
+    cmd_buffer : sg.Buffer,
+    cmd_view : sg.View,
+
+    cmds : [MAX_DRAWS]Draw_Cmd,
+    cmds_top : int
+}
+
 Coord_Mode :: enum {
     CLIP,
     PROJECTED,
     VIEW_PROJECTED
 }
 
-fb_w, fb_h : int
+Draw_Channels :: enum {
+    WORLD,
+    UI
+}
 
-draw_cmds : [MAX_DRAWS] Draw_Cmd
-draw_cmds_top : int
+fb_w, fb_h : int
 
 rect_vertex_buffer : sg.Buffer
 rect_index_buffer : sg.Buffer
-
-per_instance_buffer : sg.Buffer
-per_instance_buffer_view : sg.View
-
-lit_shader : sg.Shader
-lit_pip : sg.Pipeline
 
 coord_mode : Coord_Mode
 V, P : Mat4
@@ -47,7 +74,13 @@ cam_scroll : Vec3
 cam_roll : f32
 cam_size : f32
 
-gfx_init_resources :: proc() {
+textures : [Textures] Maybe(Texture)
+draw_channels : [Draw_Channels] Draw_Channel
+
+//RESOURCE CREATION API
+
+@(private="file")
+init_base_resources :: proc() {
     rect_vertex_data := []f32 {
         //POS       //UV
         -0.5, 0.5,  0, 1,
@@ -78,9 +111,55 @@ gfx_init_resources :: proc() {
             index_buffer = true
         }
     })
+}
 
-    per_instance_buffer = sg.make_buffer({
-        size = len(draw_cmds) * size_of(Draw_Cmd),
+@(private="file")
+get_or_create_texture :: proc(texture : Textures) -> Texture{
+    if _, ok := textures[texture].?; ok {
+        return textures[texture].?
+    }
+
+    w, h, nc : c.int
+    data := stbi.load(texture_paths[texture], &w, &h, &nc, 4)
+
+    img := sg.make_image({
+        width = w,
+        height = h,
+        pixel_format = .RGBA8,
+
+        data = {
+            mip_levels = {
+                0 = {ptr = data, size = c.size_t(w*h*4)}
+            }
+        }
+    })
+
+    stbi.image_free(data)
+
+    view := sg.make_view({
+        texture = {
+            image = img
+        }
+    })
+
+    assert(sg.query_image_state(img) == .VALID)
+
+    textures[texture] = Texture{
+        image = img,
+        view = view
+    }
+
+    return textures[texture].?
+}
+
+//DRAW CHANNEL API
+
+@(private="file")
+draw_channel_create :: proc(shader_desc : sg.Shader_Desc, transparent : bool, tex : Textures) -> (channel : Draw_Channel){
+    channel.tex = get_or_create_texture(tex)
+
+    channel.cmd_buffer = sg.make_buffer({
+        size = len(channel.cmds) * size_of(Draw_Cmd),
 
         usage = {
             storage_buffer = true,
@@ -88,28 +167,72 @@ gfx_init_resources :: proc() {
         }
     })
 
-    per_instance_buffer_view = sg.make_view({
+    channel.cmd_view = sg.make_view({
         storage_buffer = {
-            buffer = per_instance_buffer
+            buffer = channel.cmd_buffer
         }
     })
 
-    lit_shader = sg.make_shader(shaders.lit_shader_desc(sg.query_backend()))
-    lit_pip = sg.make_pipeline({
-        shader = lit_shader,
+    channel.shader = sg.make_shader(shader_desc)
+
+    pip_desc := sg.Pipeline_Desc{
+        shader = channel.shader,
 
         index_type = .UINT16,
 
         layout = {
             attrs = {
-                shaders.ATTR_lit_a_pos = {format = .FLOAT2},
-                shaders.ATTR_lit_a_uv = {format = .FLOAT2},
+                0 = {format = .FLOAT2},
+                1 = {format = .FLOAT2},
             }
         },
-    })
+    }
+
+    channel.pip = sg.make_pipeline(pip_desc)
+
+    return
 }
 
-@private
+@(private="file")
+draw_channel_push :: proc(channel : ^Draw_Channel, cmd : Draw_Cmd) {
+    channel.cmds[channel.cmds_top] = cmd
+    channel.cmds_top += 1
+}
+
+@(private="file")
+draw_channel_execute :: proc(channel : ^Draw_Channel) {
+    sg.update_buffer(channel.cmd_buffer, {
+        ptr = &channel.cmds[0],
+        size = len(channel.cmds) * size_of(Draw_Cmd)
+    })
+
+    sg.begin_pass({
+        action = {
+            colors = {
+                0 = {load_action = .LOAD}
+            }
+        },
+
+        swapchain = sglue.swapchain()
+    })
+
+    sg.apply_pipeline(channel.pip)
+
+    sg.apply_bindings({
+        vertex_buffers = {0 = rect_vertex_buffer},
+        index_buffer = rect_index_buffer,
+        views = {0 = channel.cmd_view}
+    })
+
+    sg.draw(0, 6, channel.cmds_top)
+
+    sg.end_pass()
+
+    channel.cmds_top = 0
+}
+
+//GFX API
+
 gfx_init :: proc(w, h : int) {
     fb_w, fb_h = w, h
 
@@ -124,10 +247,20 @@ gfx_init :: proc(w, h : int) {
         }
     })
     
-    gfx_init_resources()
+    init_base_resources()
+
+    draw_channels[.WORLD] = draw_channel_create(
+        shaders.lit_shader_desc(sg.query_backend()),
+        false,
+        .WORLD
+    )
+    draw_channels[.UI] = draw_channel_create(
+        shaders.lit_shader_desc(sg.query_backend()),
+         true,
+        .UI
+    )
 }
 
-@private
 gfx_set_coord_mode :: proc(mode : Coord_Mode) {
     coord_mode = mode
 }
@@ -147,52 +280,36 @@ gfx_set_cam_roll :: proc(roll : f32) {
     V = view_make(cam_scroll, roll)
 }
 
-@private
-gfx_push_cmd :: proc (cmd : Draw_Cmd) {
+gfx_push_cmd :: proc (channel : Draw_Channels, cmd : Draw_Cmd) {
     cmd := cmd
 
     if coord_mode == .VIEW_PROJECTED do cmd.xform = P * V * cmd.xform
     else if coord_mode == .PROJECTED do cmd.xform = P * cmd.xform
 
-    draw_cmds[draw_cmds_top] = cmd
-    draw_cmds_top += 1
+    draw_channel_push(&draw_channels[channel], cmd)
 }
 
-@private
 gfx_execute :: proc() {
-    //do drawing
-    sg.update_buffer(per_instance_buffer, {
-        ptr = &draw_cmds[0],
-        size = len(draw_cmds) * size_of(Draw_Cmd)
-    })
-
+    //dummy pass to clear screen
     sg.begin_pass({
         action = {
             colors = {
-                0 = {load_action = .CLEAR, clear_value = {0.1, 0.1, 0.1, 1.0}}
+                0 = {load_action = .CLEAR, clear_value = {0, 0, 0, 0}}
             }
         },
 
         swapchain = sglue.swapchain()
     })
-
-    sg.apply_pipeline(lit_pip)
-
-    sg.apply_bindings({
-        vertex_buffers = {0 = rect_vertex_buffer},
-        index_buffer = rect_index_buffer,
-        views = {0 = per_instance_buffer_view}
-    })
-
-    sg.draw(0, 6, draw_cmds_top)
-
     sg.end_pass()
-    sg.commit()
 
-    draw_cmds_top = 0
+    //do drawing
+    for &c in draw_channels {
+        draw_channel_execute(&c)
+    }
+
+    sg.commit()
 }
 
-@private
 gfx_shutdown :: proc() {
     sg.shutdown()
 }

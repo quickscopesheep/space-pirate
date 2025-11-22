@@ -164,7 +164,7 @@ player_update :: proc(ref : ^Entity) {
 }
 
 player_draw :: proc(ref : ^Entity, alpha : f64) {
-    gfx_push_cmd({
+    gfx_push_cmd(.WORLD, {
         xform = xform_make(pos = lerp(ref.last_pos, ref.pos, f32(alpha)), roll = lerp(ref.last_roll, ref.roll, f32(alpha)), scale = {1, 1, 1}),
         tint = Vec4{1, 0, 0, 1}
     })

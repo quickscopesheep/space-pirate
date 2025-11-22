@@ -2,7 +2,7 @@
 @header import sg "sokol:gfx/"
 @header import "core:math/linalg/glsl"
 
-@module lit
+@module unlit
 
 @ctype mat4 glsl.mat4
 @ctype vec4 glsl.vec4
@@ -61,4 +61,4 @@ void main() {
 
 @end
 
-@program lit vs fs
+@program unlit vs fs
