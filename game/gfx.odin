@@ -14,9 +14,6 @@ import "shaders"
 
 MAX_DRAWS :: 256
 
-//keep all game shit in one image
-//keep all UI shit in different image
-
 BINDING_CMD_BUFF :: 0
 BINDING_TEX :: 1
 
