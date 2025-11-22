@@ -53,10 +53,13 @@ in struct VS_OUT {
     vec2 uv;
 } vs_out;
 
+layout(binding=1) uniform texture2D tex;
+layout(binding=0) uniform sampler smp;
+
 out vec4 frag;
 
 void main() {
-    frag = vs_out.color;
+    frag = texture(sampler2D(tex, smp), vs_out.uv) * vs_out.color;
 }
 
 @end

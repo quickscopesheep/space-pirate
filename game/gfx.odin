@@ -17,6 +17,9 @@ MAX_DRAWS :: 256
 //keep all game shit in one image
 //keep all UI shit in different image
 
+BINDING_CMD_BUFF :: 0
+BINDING_TEX :: 1
+
 Textures :: enum u8 {
     WORLD,
     UI
@@ -27,7 +30,24 @@ texture_paths := [Textures] cstring {
     .UI = "data/ui.png"
 }
 
+Coord_Mode :: enum {
+    CLIP,
+    PROJECTED,
+    VIEW_PROJECTED
+}
+
+Draw_Channels :: enum {
+    WORLD,
+    UI
+}
+
+Sprite :: struct {
+    x, y : int,
+    w, h : int
+}
+
 Texture :: struct {
+    w, h : int,
     image : sg.Image,
     view : sg.View
 }
@@ -51,21 +71,12 @@ Draw_Channel :: struct {
     cmds_top : int
 }
 
-Coord_Mode :: enum {
-    CLIP,
-    PROJECTED,
-    VIEW_PROJECTED
-}
-
-Draw_Channels :: enum {
-    WORLD,
-    UI
-}
-
 fb_w, fb_h : int
 
 rect_vertex_buffer : sg.Buffer
 rect_index_buffer : sg.Buffer
+
+point_sampler : sg.Sampler
 
 coord_mode : Coord_Mode
 V, P : Mat4
@@ -111,6 +122,11 @@ init_base_resources :: proc() {
             index_buffer = true
         }
     })
+
+    point_sampler = sg.make_sampler({
+        min_filter = .NEAREST,
+        mag_filter = .NEAREST
+    })
 }
 
 @(private="file")
@@ -121,6 +137,8 @@ get_or_create_texture :: proc(texture : Textures) -> Texture{
 
     w, h, nc : c.int
     data := stbi.load(texture_paths[texture], &w, &h, &nc, 4)
+    assert(data != nil)
+    defer stbi.image_free(data)
 
     img := sg.make_image({
         width = w,
@@ -134,17 +152,16 @@ get_or_create_texture :: proc(texture : Textures) -> Texture{
         }
     })
 
-    stbi.image_free(data)
-
     view := sg.make_view({
         texture = {
             image = img
         }
     })
 
-    assert(sg.query_image_state(img) == .VALID)
 
     textures[texture] = Texture{
+        w = int(w),
+        h = int(h),
         image = img,
         view = view
     }
@@ -221,7 +238,11 @@ draw_channel_execute :: proc(channel : ^Draw_Channel) {
     sg.apply_bindings({
         vertex_buffers = {0 = rect_vertex_buffer},
         index_buffer = rect_index_buffer,
-        views = {0 = channel.cmd_view}
+        views = {
+            BINDING_CMD_BUFF = channel.cmd_view,
+            BINDING_TEX = channel.tex.view
+        },
+        samplers = {0 = point_sampler}
     })
 
     sg.draw(0, 6, channel.cmds_top)
@@ -238,7 +259,7 @@ gfx_init :: proc(w, h : int) {
 
     coord_mode = .VIEW_PROJECTED
     gfx_set_cam_scroll({0, 0, 0})
-    gfx_set_cam_size(32)
+    gfx_set_cam_size(10)
 
     sg.setup({
         environment = sglue.environment(),
@@ -312,4 +333,13 @@ gfx_execute :: proc() {
 
 gfx_shutdown :: proc() {
     sg.shutdown()
+}
+
+sprite_to_uv :: proc(sprite : Sprite, texture : Textures) -> (uv0, uv1 : Vec2) {
+    tex := get_or_create_texture(texture)
+
+    uv0 = Vec2{f32(sprite.x) / f32(tex.w), f32(sprite.y) / f32(tex.w)}
+    uv1 = Vec2{f32(sprite.x + sprite.w) / f32(tex.w), f32(sprite.y + sprite.h) / f32(tex.h)}
+
+    return
 }
