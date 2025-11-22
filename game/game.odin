@@ -36,7 +36,6 @@ game_tick :: proc() {
 
 game_draw :: proc(alpha : f64) {
     gfx_set_coord_mode(.VIEW_PROJECTED)
-
     entity_draw(alpha)
 }
 
