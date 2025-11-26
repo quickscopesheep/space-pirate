@@ -17,20 +17,15 @@ MAX_DRAWS :: 256
 BINDING_CMD_BUFF :: 0
 BINDING_TEX :: 1
 
-Textures :: enum u8 {
-    WORLD,
-    UI
-}
-
-texture_paths := [Textures] cstring {
-    .WORLD = "data/world.png",
-    .UI = "data/ui.png"
-}
-
 Coord_Mode :: enum {
     CLIP,
     PROJECTED,
     VIEW_PROJECTED
+}
+
+Atlases :: enum {
+    WORLD,
+    UI
 }
 
 Draw_Channels :: enum {
@@ -40,10 +35,13 @@ Draw_Channels :: enum {
 
 Sprite :: struct {
     x, y : int,
-    w, h : int
+    w, h : int,
+
+    //anchor
+    anchor : Vec2
 }
 
-Texture :: struct {
+Atlas :: struct {
     w, h : int,
     image : sg.Image,
     view : sg.View
@@ -59,7 +57,7 @@ Draw_Cmd :: struct {
 Draw_Channel :: struct {
     shader : sg.Shader,
     pip : sg.Pipeline,
-    tex : Texture,
+    atlas : Atlases,
 
     cmd_buffer : sg.Buffer,
     cmd_view : sg.View,
@@ -82,7 +80,7 @@ cam_scroll : Vec3
 cam_roll : f32
 cam_size : f32
 
-textures : [Textures] Maybe(Texture)
+atlases : [Atlases] Atlas
 draw_channels : [Draw_Channels] Draw_Channel
 
 //RESOURCE CREATION API
@@ -127,14 +125,11 @@ init_base_resources :: proc() {
 }
 
 @(private="file")
-get_or_create_texture :: proc(texture : Textures) -> Texture{
-    if _, ok := textures[texture].?; ok {
-        return textures[texture].?
-    }
-
+load_atlas :: proc(path : cstring) -> Atlas{
     w, h, nc : c.int
-    data := stbi.load(texture_paths[texture], &w, &h, &nc, 4)
+    data := stbi.load(path, &w, &h, &nc, 4)
     assert(data != nil)
+
     defer stbi.image_free(data)
 
     img := sg.make_image({
@@ -155,22 +150,19 @@ get_or_create_texture :: proc(texture : Textures) -> Texture{
         }
     })
 
-
-    textures[texture] = Texture{
+    return Atlas {
         w = int(w),
         h = int(h),
         image = img,
         view = view
     }
-
-    return textures[texture].?
 }
 
 //DRAW CHANNEL API
 
 @(private="file")
-draw_channel_create :: proc(shader_desc : sg.Shader_Desc, transparent : bool, tex : Textures) -> (channel : Draw_Channel){
-    channel.tex = get_or_create_texture(tex)
+draw_channel_create :: proc(shader_desc : sg.Shader_Desc, atlas : Atlases) -> (channel : Draw_Channel){
+    channel.atlas = atlas
 
     channel.cmd_buffer = sg.make_buffer({
         size = len(channel.cmds) * size_of(Draw_Cmd),
@@ -237,7 +229,7 @@ draw_channel_execute :: proc(channel : ^Draw_Channel) {
         index_buffer = rect_index_buffer,
         views = {
             BINDING_CMD_BUFF = channel.cmd_view,
-            BINDING_TEX = channel.tex.view
+            BINDING_TEX = atlases[channel.atlas].view
         },
         samplers = {0 = point_sampler}
     })
@@ -267,14 +259,15 @@ gfx_init :: proc(w, h : int) {
     
     init_base_resources()
 
+    atlases[.WORLD] = load_atlas("data/world.png")
+    atlases[.UI] = load_atlas("data/ui.png")
+
     draw_channels[.WORLD] = draw_channel_create(
         shaders.lit_shader_desc(sg.query_backend()),
-        false,
         .WORLD
     )
     draw_channels[.UI] = draw_channel_create(
         shaders.lit_shader_desc(sg.query_backend()),
-         true,
         .UI
     )
 }
@@ -312,7 +305,7 @@ gfx_execute :: proc() {
     sg.begin_pass({
         action = {
             colors = {
-                0 = {load_action = .CLEAR, clear_value = {0, 0, 0, 0}}
+                0 = {load_action = .CLEAR, clear_value = {0.1, 0.1, 0.1, 0}}
             }
         },
 
@@ -332,8 +325,8 @@ gfx_shutdown :: proc() {
     sg.shutdown()
 }
 
-sprite_to_uv :: proc(sprite : Sprite, texture : Textures) -> (uv0, uv1 : Vec2) {
-    tex := get_or_create_texture(texture)
+sprite_to_uv :: proc(sprite : Sprite, atlas : Atlases) -> (uv0, uv1 : Vec2) {
+    tex := atlases[atlas]
 
     uv0 = Vec2{f32(sprite.x) / f32(tex.w), f32(sprite.y) / f32(tex.w)}
     uv1 = Vec2{f32(sprite.x + sprite.w) / f32(tex.w), f32(sprite.y + sprite.h) / f32(tex.h)}
