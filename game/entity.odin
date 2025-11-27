@@ -149,27 +149,14 @@ player_update :: proc(ref : ^Entity) {
     PLAYER_SPEED :: 8.0
     input_vect := Vec3{}
 
-    if input_key(.W) {
-        input_vect += Vec3{0, -1, 0}
-        ref.dir = -1
-    }
+    if input_key(.W) do input_vect += Vec3{0, -1, 0}
+    if input_key(.S) do input_vect += Vec3{0, 1, 0}
+    if input_key(.A) do input_vect += Vec3{-1, 0, 0}
+    if input_key(.D) do input_vect += Vec3{1, 0, 0}
 
-    if input_key(.S) {
-        input_vect += Vec3{0, 1, 0}
-        ref.dir.y = 1
-    }
+    if linalg.length(input_vect) > 0.0 do input_vect = linalg.normalize(input_vect)
+    if linalg.length(input_vect) > 0.0 do ref.dir = input_vect.xy
 
-    if input_key(.A) {
-        input_vect += Vec3{-1, 0, 0}
-        ref.dir.x = -1
-    }
-
-    if input_key(.D) {
-        input_vect += Vec3{1, 0, 0}
-        ref.dir.x = 1
-    }
-
-    if linalg.length(input_vect) != 0.0 do input_vect = linalg.normalize(input_vect)
     ref.pos += input_vect * PLAYER_SPEED * DT
 }
 
