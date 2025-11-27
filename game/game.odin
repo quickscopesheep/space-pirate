@@ -38,9 +38,16 @@ game_draw :: proc(alpha : f32) {
     gfx_set_coord_mode(.VIEW_PROJECTED)
     gfx_set_cam_size(24)
 
+    for y in -4..<4 {
+        for x in -4..<4 {
+            draw_world_sprite(xform_make(pos = {f32(x)*2, f32(y)*2, 0}), SPRITE_FLOOR_GRATE)
+        }
+    }
+
+
     entity_draw(alpha)
-    
-    gfx_push_cmd(.WORLD, {
+
+    gfx_push_cmd(.UI, {
         xform = xform_make(scale = {0.1, 0.1, 0.1}),
         tint = Vec4{1, 1, 1, 1}
     })

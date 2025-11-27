@@ -12,7 +12,7 @@ import slog "sokol:log/"
 
 import "shaders"
 
-MAX_DRAWS :: 256
+MAX_DRAWS :: 1024
 
 BINDING_CMD_BUFF :: 0
 BINDING_TEX :: 1

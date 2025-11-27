@@ -32,3 +32,8 @@ SPRITE_PLAYER_ARM :: Sprite {
     w = 4, h = 20,
     anchor = {0, -0.5}
 }
+
+SPRITE_FLOOR_GRATE :: Sprite {
+    x = 144, y = 48,
+    w = 32, h = 32,
+}
