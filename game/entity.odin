@@ -8,15 +8,15 @@ import "core:math/linalg"
 
 MAX_ENTITIES :: 256
 
+Entity_Kind :: enum{
+    PLAYER
+}
+
 Entity_Dir :: enum {
     NORTH,
     SOUTH,
     EAST,
     WEST
-}
-
-Entity_Kind :: enum{
-    PLAYER
 }
 
 Entity_Id :: bit_field u32 {
@@ -33,7 +33,7 @@ Entity :: struct {
     roll, last_roll : f32,
     scale : Vec3,
 
-    dir : Entity_Dir
+    dir : Vec2
 }
 
 Entity_Array :: struct{
@@ -151,22 +151,22 @@ player_update :: proc(ref : ^Entity) {
 
     if input_key(.W) {
         input_vect += Vec3{0, -1, 0}
-        ref.dir = .NORTH
+        ref.dir = -1
     }
 
     if input_key(.S) {
         input_vect += Vec3{0, 1, 0}
-        ref.dir = .SOUTH
+        ref.dir.y = 1
     }
 
     if input_key(.A) {
         input_vect += Vec3{-1, 0, 0}
-        ref.dir = .EAST
+        ref.dir.x = -1
     }
 
     if input_key(.D) {
         input_vect += Vec3{1, 0, 0}
-        ref.dir = .WEST
+        ref.dir.x = 1
     }
 
     if linalg.length(input_vect) != 0.0 do input_vect = linalg.normalize(input_vect)
@@ -175,6 +175,7 @@ player_update :: proc(ref : ^Entity) {
 
 HEAD_OFFSET_Y :: -1.42
 FACE_OFFSET_Y :: -0.5
+FACE_OFFSET_X :: 0.2
 
 ARM_OFFSET_X :: 0.62
 ARM_OFFSET_Y :: -1.42
@@ -185,11 +186,12 @@ player_draw :: proc(ref : ^Entity, alpha : f32) {
     player_xfrom := xform_make(pos = lerp(ref.last_pos, ref.pos, alpha), roll = lerp(ref.last_roll, ref.roll, alpha))
 
     draw_world_sprite(player_xfrom * xform_make(), SPRITE_PLAYER_BODY)
-
     draw_world_sprite(player_xfrom * xform_make(pos = {0, HEAD_OFFSET_Y, 0}), SPRITE_PLAYER_HEAD)
 
-    if ref.dir != .NORTH {
-        draw_world_sprite(player_xfrom * xform_make(pos = {0, HEAD_OFFSET_Y + FACE_OFFSET_Y, 0}), SPRITE_PLAYER_FACE)
+    if ref.dir.y > 0 {
+        face_offset_x := FACE_OFFSET_X * ref.dir.x
+        draw_world_sprite(player_xfrom * xform_make(pos = {face_offset_x, HEAD_OFFSET_Y + FACE_OFFSET_Y, 0}),
+            SPRITE_PLAYER_FACE)
     }
 
     //left arm
