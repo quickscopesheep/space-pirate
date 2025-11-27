@@ -17,6 +17,7 @@ DT :: 1 / 60.0
 prev_time := time.tick_now()
 acc : f64
 
+elapsed_time : f64
 game : Game
 
 game_start :: proc() {
@@ -33,9 +34,16 @@ game_tick :: proc() {
     entity_update()
 }
 
-game_draw :: proc(alpha : f64) {
+game_draw :: proc(alpha : f32) {
     gfx_set_coord_mode(.VIEW_PROJECTED)
+    gfx_set_cam_size(24)
+
     entity_draw(alpha)
+    
+    gfx_push_cmd(.WORLD, {
+        xform = xform_make(scale = {0.1, 0.1, 0.1}),
+        tint = Vec4{1, 1, 1, 1}
+    })
 }
 
 game_loop :: proc() {
@@ -51,15 +59,18 @@ game_loop :: proc() {
     if num_ticks > 0 {
         input_normalise(num_ticks)
         for i in 0..<num_ticks {
+            elapsed_time += DT
             game_tick()
 
             input_reset_temp()
         }
     }
-    
-    alpha := acc / DT
+
+    elapsed_time += acc
+    alpha := f32(acc / DT)
 
     game_draw(alpha)
+
     gfx_execute()
 
     free_all(context.temp_allocator)

@@ -60,6 +60,10 @@ out vec4 frag;
 
 void main() {
     frag = texture(sampler2D(tex, smp), vs_out.uv) * vs_out.color;
+
+    if (frag.a < 0.1) {
+        discard;
+    }
 }
 
 @end

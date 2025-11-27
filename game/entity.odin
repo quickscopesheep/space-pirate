@@ -6,10 +6,14 @@ import "core:mem"
 import "core:math"
 import "core:math/linalg"
 
-//TODO: BLENDED parapoly struct
-//use refletction to find all types under a struct 
-
 MAX_ENTITIES :: 256
+
+Entity_Dir :: enum {
+    NORTH,
+    SOUTH,
+    EAST,
+    WEST
+}
 
 Entity_Kind :: enum{
     PLAYER
@@ -27,7 +31,9 @@ Entity :: struct {
     pos, last_pos : Vec3,
 
     roll, last_roll : f32,
-    scale : Vec3
+    scale : Vec3,
+
+    dir : Entity_Dir
 }
 
 Entity_Array :: struct{
@@ -127,7 +133,7 @@ entity_update :: proc() {
     }
 }
 
-entity_draw :: proc(alpha : f64) {
+entity_draw :: proc(alpha : f32) {
     for i in 0..<game.entities.dense_next {
         ref := &game.entities.dense[i]
         switch ref.kind {
@@ -145,31 +151,54 @@ player_update :: proc(ref : ^Entity) {
 
     if input_key(.W) {
         input_vect += Vec3{0, -1, 0}
+        ref.dir = .NORTH
     }
 
     if input_key(.S) {
         input_vect += Vec3{0, 1, 0}
+        ref.dir = .SOUTH
     }
 
     if input_key(.A) {
         input_vect += Vec3{-1, 0, 0}
+        ref.dir = .EAST
     }
 
     if input_key(.D) {
         input_vect += Vec3{1, 0, 0}
+        ref.dir = .WEST
     }
 
     if linalg.length(input_vect) != 0.0 do input_vect = linalg.normalize(input_vect)
     ref.pos += input_vect * PLAYER_SPEED * DT
 }
 
-player_draw :: proc(ref : ^Entity, alpha : f64) {
-    uv0, uv1 := sprite_to_uv(SPRITE_RUPERT, .WORLD)
+HEAD_OFFSET_Y :: -1.42
+FACE_OFFSET_Y :: -0.5
 
-    gfx_push_cmd(.WORLD, {
-        xform = xform_make(pos = lerp(ref.last_pos, ref.pos, f32(alpha)), roll = lerp(ref.last_roll, ref.roll, f32(alpha)), scale = {1, 1, 1}),
-        tint = Vec4{1, 1, 1, 1},
-        uv0 = uv0,
-        uv1 = uv1
-    })
+ARM_OFFSET_X :: 0.62
+ARM_OFFSET_Y :: -1.42
+
+LEG_OFFSET_X :: 0.3
+
+player_draw :: proc(ref : ^Entity, alpha : f32) {
+    player_xfrom := xform_make(pos = lerp(ref.last_pos, ref.pos, alpha), roll = lerp(ref.last_roll, ref.roll, alpha))
+
+    draw_world_sprite(player_xfrom * xform_make(), SPRITE_PLAYER_BODY)
+
+    draw_world_sprite(player_xfrom * xform_make(pos = {0, HEAD_OFFSET_Y, 0}), SPRITE_PLAYER_HEAD)
+
+    if ref.dir != .NORTH {
+        draw_world_sprite(player_xfrom * xform_make(pos = {0, HEAD_OFFSET_Y + FACE_OFFSET_Y, 0}), SPRITE_PLAYER_FACE)
+    }
+
+    //left arm
+    draw_world_sprite(player_xfrom * xform_make(pos = {-ARM_OFFSET_X, ARM_OFFSET_Y, 0}, roll = roll_make(0)), SPRITE_PLAYER_ARM)
+    //right ar
+    draw_world_sprite(player_xfrom * xform_make(pos = {ARM_OFFSET_X, ARM_OFFSET_Y, 0}, roll = roll_make(0)), SPRITE_PLAYER_ARM)
+
+    //left arm
+    draw_world_sprite(player_xfrom * xform_make(pos = {-LEG_OFFSET_X, 0, 0}), SPRITE_PLAYER_LEG)
+    //right arm
+    draw_world_sprite(player_xfrom * xform_make(pos = {LEG_OFFSET_X, 0, 0}), SPRITE_PLAYER_LEG)
 }
