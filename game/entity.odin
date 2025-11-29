@@ -160,8 +160,8 @@ player_update :: proc(ref : ^Entity) {
 
     if linalg.length(input_vect) > 0.0 do input_vect = linalg.normalize(input_vect)
 
-    if linalg.length(input_vect) > 0.0 do ref.dir = input_vect.xy
-    if input_vect.x != 0 && input_vect.y == 0 do ref.dir.y = 1
+    if input_vect.x != 0.0 do ref.dir.x = input_vect.x
+    if input_vect.y != 0.0 do ref.dir.y = input_vect.y
 
     ref.moving = linalg.length(input_vect) > 0.0
     if ref.moving{
@@ -193,11 +193,9 @@ player_draw :: proc(ref : ^Entity, alpha : f32) {
     draw_world_sprite(player_xfrom * xform_make(), SPRITE_PLAYER_BODY)
     draw_world_sprite(player_xfrom * xform_make(pos = {0, HEAD_OFFSET_Y, 0}), SPRITE_PLAYER_HEAD)
 
-    if ref.dir.y > 0 {
-        face_offset_x := FACE_OFFSET_X * ref.dir.x
-        draw_world_sprite(player_xfrom * xform_make(pos = {face_offset_x, HEAD_OFFSET_Y + FACE_OFFSET_Y, 0}),
-            SPRITE_PLAYER_FACE)
-    }
+    face_offset_x := FACE_OFFSET_X * ref.dir.x
+    draw_world_sprite(player_xfrom * xform_make(pos = {face_offset_x, HEAD_OFFSET_Y + FACE_OFFSET_Y, 0}),
+        SPRITE_PLAYER_FACE)
 
     limb_rot := ref.moving ? math.sin(ref.walk_anim_time * WALK_ANGLE_SPEED) * MAX_LEG_ANGLE : 0
 
