@@ -1,6 +1,6 @@
-package game
+package input
 
-import sapp "sokol:app"
+import "../util"
 
 Key :: enum i32 {
     INVALID = 0,
@@ -139,43 +139,70 @@ Input_State :: enum {
     HELD
 }
 
+Event_Kind :: enum {
+    KEY,
+    MOUSE,
+    CURSOR,
+    SCROLL
+}
+
+Event_Action :: enum {
+    PRESS,
+    RELEASE
+}
+
+Event :: struct {
+    kind : Event_Kind,
+    action : Event_Action,
+    key : Key,
+    mb : Mouse_Button,
+    cursor : util.Vec2,
+    scroll : f32
+}
+
+@private
 Input_Bits :: bit_set[Input_State]
 
+@private
 keys : #sparse [Key] Input_Bits
+@private
 mbs : #sparse [Mouse_Button] Input_Bits
 
-mouse_pos : Vec2
-delta_mouse_pos : Vec2
+@private
+mouse_pos : util.Vec2
+@private
+delta_mouse_pos : util.Vec2
+@private
 mouse_scroll : f32
+@private
 delta_mouse_scroll : f32
 
-events : [64] sapp.Event
+@private
+events : [64] Event
+@private
 ev_top : u8
 
-input_accumulate_event :: proc(ev : sapp.Event) {
+accumulate_event :: proc(ev : Event) {
     events[ev_top] = ev
     ev_top += 1
 }
 
-input_poll_events :: proc() {
+poll_events :: proc() {
     for ev in events[:ev_top] {
-        #partial switch ev.type {
-            case .KEY_DOWN:
-                if ev.key_repeat do continue
-                keys[Key(ev.key_code)] = {.PRESSED, .HELD}
-            case .KEY_UP:
-                keys[Key(ev.key_code)] = {.RELEASED}
-            case .MOUSE_DOWN:
-                mbs[Mouse_Button(ev.mouse_button)] = {.PRESSED, .HELD}
-            case .MOUSE_UP:
-                mbs[Mouse_Button(ev.mouse_button)] = {.RELEASED}
-            case .MOUSE_MOVE:
+        #partial switch ev.kind {
+            case .KEY:
+                if ev.action == .PRESS do keys[Key(ev.key)] = {.PRESSED, .HELD}
+                else do keys[Key(ev.key)] = {.RELEASED}
+            case .MOUSE:
+                if ev.action == .PRESS do mbs[Mouse_Button(ev.mb)] = {.PRESSED, .HELD}
+                else do mbs[Mouse_Button(ev.mb)] = {.RELEASED}
+            case .CURSOR:
                 last := mouse_pos
-                mouse_pos = {ev.mouse_x, ev.mouse_y}
+                mouse_pos = {ev.cursor.x, ev.cursor.y}
                 delta_mouse_pos = mouse_pos - last
-            case .MOUSE_SCROLL:
+            case .SCROLL:
                 last := mouse_scroll
-                mouse_scroll = ev.scroll_y
+                mouse_scroll = ev.scroll
                 delta_mouse_scroll = mouse_scroll - last
         }
     }
@@ -183,52 +210,52 @@ input_poll_events :: proc() {
     ev_top = 0
 }
 
-input_normalise :: proc(num_ticks : int) {
+normalise :: proc(num_ticks : int) {
     delta_mouse_pos /= f32(num_ticks)
     delta_mouse_scroll /= f32(num_ticks)
 }
 
-input_reset_temp :: proc() {
+reset_temp :: proc() {
     for &key in keys do key &= {.HELD}
     for &mb in mbs do mb &= {.HELD}
 }
 
-input_key :: proc(key : Key) -> bool {
+get_key :: proc(key : Key) -> bool {
     return .HELD in keys[key]
 }
 
-input_key_down :: proc(key : Key) -> bool {
+get_key_down :: proc(key : Key) -> bool {
     return .PRESSED in keys[key]
 }
 
-input_key_up :: proc(key : Key) -> bool {
+get_key_up :: proc(key : Key) -> bool {
     return .RELEASED in keys[key]
 }
 
-input_mb :: proc(mb : Mouse_Button) -> bool {
+get_mb :: proc(mb : Mouse_Button) -> bool {
     return .HELD in mbs[mb]
 }
 
-input_mb_down :: proc(mb : Mouse_Button) -> bool {
+get_mb_down :: proc(mb : Mouse_Button) -> bool {
     return .PRESSED in mbs[mb]
 }
 
-input_mb_up :: proc(mb : Mouse_Button) -> bool {
+get_mb_up :: proc(mb : Mouse_Button) -> bool {
     return .RELEASED in mbs[mb]
 }
 
-input_mouse_pos :: proc() -> Vec2 {
+get_mouse_pos :: proc() -> util.Vec2 {
     return mouse_pos
 }
 
-input_mouse_scroll :: proc() -> f32 {
+get_mouse_scroll :: proc() -> f32 {
     return mouse_scroll
 }
 
-input_delta_mouse_pos :: proc() -> Vec2 {
+get_delta_mouse_pos :: proc() -> util.Vec2 {
     return delta_mouse_pos
 }
 
-input_delta_mouse_scroll :: proc() -> f32 {
+get_delta_mouse_scroll :: proc() -> f32 {
     return delta_mouse_scroll
 }

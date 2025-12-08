@@ -6,6 +6,10 @@ import "core:mem"
 import "core:math"
 import "core:math/linalg"
 
+import "gfx"
+import "util"
+import "input"
+
 MAX_ENTITIES :: 256
 
 Entity_Kind :: enum{
@@ -28,15 +32,12 @@ Entity :: struct {
     id : Entity_Id,
     kind : Entity_Kind,
 
-    pos, last_pos : Vec3,
+    pos, last_pos : util.Vec3,
 
     roll, last_roll : f32,
-    scale : Vec3,
+    scale : util.Vec3,
 
-    //player
-    dir : Vec2,
-    moving : bool,
-    walk_anim_time : f32
+    dir : f32
 }
 
 Entity_Array :: struct{
@@ -148,85 +149,10 @@ entity_draw :: proc(alpha : f32) {
     }
 }
 
-PLAYER_SPEED :: 8.0
-
 player_update :: proc(ref : ^Entity) {
-    input_vect := Vec3{}
 
-    if input_key(.W) do input_vect += Vec3{0, -1, 0}
-    if input_key(.S) do input_vect += Vec3{0, 1, 0}
-    if input_key(.A) do input_vect += Vec3{-1, 0, 0}
-    if input_key(.D) do input_vect += Vec3{1, 0, 0}
-
-    if linalg.length(input_vect) > 0.0 do input_vect = linalg.normalize(input_vect)
-
-    if input_vect.x != 0.0 do ref.dir.x = input_vect.x
-    if input_vect.y != 0.0 do ref.dir.y = input_vect.y
-
-    ref.moving = linalg.length(input_vect) > 0.0
-    if ref.moving{
-        ref.walk_anim_time += DT
-    }else {
-        ref.walk_anim_time = 0
-    }
-
-    ref.pos += input_vect * PLAYER_SPEED * DT
 }
 
-HEAD_OFFSET_Y :: -1.42
-FACE_OFFSET_Y :: -0.5
-FACE_OFFSET_X :: 0.2
-
-ARM_OFFSET_X :: 0.62
-ARM_OFFSET_Y :: -1.42
-
-LEG_OFFSET_X :: 0.3
-
-MAX_LEG_ANGLE :: 15
-WALK_ANGLE_SPEED :: 2 * math.PI * (1 / 0.6)
-
-LEG_LENGTH :: 20.0 / 16.0
-
 player_draw :: proc(ref : ^Entity, alpha : f32) {
-    player_xfrom := xform_make(pos = lerp(ref.last_pos, ref.pos, alpha), roll = lerp(ref.last_roll, ref.roll, alpha))
-
-    draw_world_sprite(player_xfrom * xform_make(), SPRITE_PLAYER_BODY)
-    draw_world_sprite(player_xfrom * xform_make(pos = {0, HEAD_OFFSET_Y, 0}), SPRITE_PLAYER_HEAD)
-
-    face_offset_x := FACE_OFFSET_X * ref.dir.x
-    draw_world_sprite(player_xfrom * xform_make(pos = {face_offset_x, HEAD_OFFSET_Y + FACE_OFFSET_Y, 0}),
-        SPRITE_PLAYER_FACE)
-
-    limb_rot := ref.moving ? math.sin(ref.walk_anim_time * WALK_ANGLE_SPEED) * MAX_LEG_ANGLE : 0
-
-    //left arm
-    draw_world_sprite(player_xfrom * xform_make(
-        pos = {-ARM_OFFSET_X, ARM_OFFSET_Y, 0},
-        roll = roll_make(-limb_rot),
-        scale = {1, 1, 1}),
-        SPRITE_PLAYER_ARM
-    )
-
-    //right arm
-    draw_world_sprite(player_xfrom * xform_make(
-        pos = {ARM_OFFSET_X, ARM_OFFSET_Y, 0},
-        roll = roll_make(limb_rot),
-        scale = {1, 1, 1}),
-        SPRITE_PLAYER_ARM
-    )
-
-    //left leg
-    draw_world_sprite(player_xfrom * xform_make(
-        pos = {-LEG_OFFSET_X, 0, 0},
-        roll= roll_make(limb_rot),
-        scale = {1, 1, 1}),
-        SPRITE_PLAYER_LEG)
-
-    //right leg
-    draw_world_sprite(player_xfrom * xform_make(
-        pos = {LEG_OFFSET_X, 0, 0},
-        roll=roll_make(-limb_rot),
-        scale = {1, 1, 1}),
-        SPRITE_PLAYER_LEG
-    )
+    
 }

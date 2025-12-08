@@ -1,4 +1,4 @@
-package game
+package util
 
 import "core:math/linalg"
 import "core:math/linalg/glsl"

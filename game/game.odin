@@ -7,17 +7,25 @@ import "core:time"
 
 import "core:fmt"
 
+import "util"
+import "input"
+import "gfx"
+
 Game :: struct {
     entities : Entity_Array,
     player : Entity_Id
 }
 
-DT :: 1 / 60.0
+GAME_DELTA_TIME :: 1 / 60.0
 
+@(private="file")
 prev_time := time.tick_now()
+@(private="file")
 acc : f64
 
+@(private="file")
 elapsed_time : f64
+
 game : Game
 
 game_start :: proc() {
@@ -35,50 +43,37 @@ game_tick :: proc() {
 }
 
 game_draw :: proc(alpha : f32) {
-    gfx_set_coord_mode(.VIEW_PROJECTED)
-    gfx_set_cam_size(24)
-
-    for y in -4..<4 {
-        for x in -4..<4 {
-            draw_world_sprite(xform_make(pos = {f32(x)*2, f32(y)*2, 0}), SPRITE_FLOOR_GRATE)
-        }
-    }
-
+    gfx.set_coord_mode(.VIEW_PROJECTED)
+    gfx.set_cam_size(24)
 
     entity_draw(alpha)
 
-    gfx_push_cmd(.UI, {
-        xform = xform_make(scale = {0.1, 0.1, 0.1}),
-        tint = Vec4{1, 1, 1, 1}
-    })
 }
 
 game_loop :: proc() {
-    input_poll_events()
+    input.poll_events()
 
     frame_duration := time.duration_seconds(time.tick_since(prev_time))
     prev_time = time.tick_now()
 
     acc += frame_duration
-    num_ticks := int(math.floor(acc / DT))
-    acc -= f64(num_ticks) * DT
+    num_ticks := int(math.floor(acc / GAME_DELTA_TIME))
+    acc -= f64(num_ticks) * GAME_DELTA_TIME
 
     if num_ticks > 0 {
-        input_normalise(num_ticks)
+        input.normalise(num_ticks)
         for i in 0..<num_ticks {
-            elapsed_time += DT
+            elapsed_time += GAME_DELTA_TIME
             game_tick()
 
-            input_reset_temp()
+            input.reset_temp()
         }
     }
 
     elapsed_time += acc
-    alpha := f32(acc / DT)
+    alpha := f32(acc / GAME_DELTA_TIME)
 
     game_draw(alpha)
-
-    gfx_execute()
 
     free_all(context.temp_allocator)
 }
