@@ -8,7 +8,7 @@ import "gfx"
 
 init_cb :: proc "c"() {
     context = runtime.default_context()
-    gfx.init(int(sapp.width()), int(sapp.height()))
+    gfx.setup(int(sapp.width()), int(sapp.height()))
     game_start()
 }
 

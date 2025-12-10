@@ -3,18 +3,29 @@ package gfx
 import "../util"
 
 @private
-setup_drawing :: proc() {
+queue : Draw_Queue
 
+@private
+setup_frontend :: proc() {
+    queue_init(&queue)
 }
 
-draw_world_sprite :: proc (xform : util.Mat4, sprite : Sprite, tint := util.Vec4{1, 1, 1, 1}, ppu : int = 16) {
-    xform := xform
+begin :: proc() {
+    queue_begin(&queue)
+}
 
-    scale := f32(sprite.h) / f32(ppu) 
-    local_xform := util.xform_make(pos = {-sprite.anchor.x * scale, -sprite.anchor.y * scale, 0})
-    local_xform *= util.xform_make(scale = {scale * f32(sprite.w) / f32(sprite.h), scale, 1})
+end :: proc() {
+    queue_end(&queue)
+}
 
-    xform = xform * local_xform
+//draw_world_sprite :: proc (xform : util.Mat4, sprite : Sprite, tint := util.Vec4{1, 1, 1, 1}, ppu : int = 16) {
+    //xform := xform
+
+    //scale := f32(sprite.h) / f32(ppu) 
+    //local_xform := util.xform_make(pos = {-sprite.anchor.x * scale, -sprite.anchor.y * scale, 0})
+    //local_xform *= util.xform_make(scale = {scale * f32(sprite.w) / f32(sprite.h), scale, 1})
+
+    //xform = xform * local_xform
 
     //uv0, uv1 := sprite_to_uv(sprite)
 
@@ -24,4 +35,4 @@ draw_world_sprite :: proc (xform : util.Mat4, sprite : Sprite, tint := util.Vec4
     //    uv0 = uv0,
     //    uv1 = uv1,
     //})
-}
+//}
