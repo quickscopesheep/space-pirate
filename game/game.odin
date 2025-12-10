@@ -43,9 +43,6 @@ game_tick :: proc() {
 }
 
 game_draw :: proc(alpha : f32) {
-    gfx.set_coord_mode(.VIEW_PROJECTED)
-    gfx.set_cam_size(24)
-
     entity_draw(alpha)
 
 }

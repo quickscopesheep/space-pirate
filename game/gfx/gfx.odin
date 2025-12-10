@@ -4,6 +4,8 @@ import sg "sokol:gfx/"
 import sglue "sokol:glue/"
 import slog "sokol:log/"
 
+MAX_GFX_LAYERS :: 16
+
 Common_Samplers :: enum{
     LINEAR_REPEAT,
     POINT_REPEAT,
@@ -80,6 +82,11 @@ setup :: proc(w, h : int) {
 
     init_common_resources()
     setup_frontend()
+}
+
+on_window_resize :: proc(new_w, new_h : int) {
+    viewport_width, viewport_height = new_w, new_h
+    init_framebuffer(viewport_width, viewport_height)
 }
 
 shutdown :: proc() {

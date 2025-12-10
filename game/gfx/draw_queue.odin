@@ -29,6 +29,12 @@ Draw_Batch :: struct {
     start, end : uint
 }
 
+//functionally the same as a batch but instead points to batches array
+Draw_Layer :: struct {
+    batch_start : uint,
+    batch_end : uint
+}
+
 Draw_Queue :: struct{
     cmds : [MAX_CMDS_PER_QUEUE] Draw_Cmd,
     cmd_top : int,
@@ -37,7 +43,9 @@ Draw_Queue :: struct{
 
     packed_data : [MAX_CMDS_PER_QUEUE]Draw_Data,
     cmd_buffer : sg.Buffer,
-    cmd_view : sg.View
+    cmd_view : sg.View,
+
+    layers : [MAX_GFX_LAYERS]Draw_Layer
 }
 
 queue_init :: proc(this : ^Draw_Queue) {

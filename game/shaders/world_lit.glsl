@@ -25,6 +25,10 @@ layout(binding=0, std430) readonly buffer per_instance {
     Draw_Cmd cmds[];
 };
 
+layout(binding=0) uniform per_batch_data {
+    int batch_start;
+};
+
 out struct VS_OUT{
     vec4 world_pos;
     vec4 color;
@@ -32,13 +36,13 @@ out struct VS_OUT{
 } vs_out;
 
 void main() {
-    vs_out.world_pos = cmds[gl_InstanceIndex].xform * vec4(a_pos, 0.0, 1.0);
+    vs_out.world_pos = cmds[batch_start + gl_InstanceIndex].xform * vec4(a_pos, 0.0, 1.0);
     vs_out.uv = vec2(
-        mix(cmds[gl_InstanceIndex].uv0.x, cmds[gl_InstanceIndex].uv1.x, a_uv.x),
-        mix(cmds[gl_InstanceIndex].uv0.y, cmds[gl_InstanceIndex].uv1.y, a_uv.y)
+        mix(cmds[batch_start + gl_InstanceIndex].uv0.x, cmds[batch_start + gl_InstanceIndex].uv1.x, a_uv.x),
+        mix(cmds[batch_start + gl_InstanceIndex].uv0.y, cmds[batch_start + gl_InstanceIndex].uv1.y, a_uv.y)
     );
 
-    vs_out.color = cmds[gl_InstanceIndex].color;
+    vs_out.color = cmds[batch_start + gl_InstanceIndex].color;
 
     gl_Position = vs_out.world_pos;
 }
@@ -68,4 +72,4 @@ void main() {
 
 @end
 
-@program lit vs fs
+@program world_lit vs fs
