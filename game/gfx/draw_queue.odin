@@ -25,13 +25,32 @@ Draw_Cmd :: struct {
 }
 
 Draw_Batch :: struct {
+    //start inclusive, end exclusive
     start, end : uint
 }
 
 Draw_Queue :: struct{
     cmds : [MAX_CMDS_PER_QUEUE] Draw_Cmd,
+    cmd_top : int,
     batches : [MAX_BATCHES_PER_QUEUE] Draw_Batch,
-    cmd_top : int
+    batch_top : int,
+
+    packed_data : [MAX_CMDS_PER_QUEUE]Draw_Data,
+    cmd_buffer : sg.Buffer,
+    cmd_view : sg.View
+}
+
+queue_init :: proc(this : ^Draw_Queue) {
+    this.cmd_buffer = sg.make_buffer({
+        size = MAX_CMDS_PER_QUEUE * size_of(Draw_Data),
+        usage = {
+            storage_buffer = true,
+            stream_update = true
+        }
+    })
+    this.cmd_view = sg.make_view({
+        storage_buffer = {buffer = this.cmd_buffer}
+    })
 }
 
 queue_begin :: proc(this : ^Draw_Queue)  {
@@ -77,9 +96,19 @@ queue_end :: proc(this : ^Draw_Queue) {
     last_tex : sg.View
     last_layer : u32
 
+    for i in 0..<this.cmd_top {
+        cmd := this.cmds[i]
+        batch := &this.batches[this.batch_top]
 
-}
+        batch.end += 1
 
-queue_commit :: proc(this : Draw_Queue) {
+        if cmd.pipeline != last_pip || cmd.tex != last_tex || cmd.layer != last_layer {
+            this.batch_top += 1
+            this.batches[this.batch_top].start = uint(i)
+        }
 
+        last_pip = cmd.pipeline
+        last_tex = cmd.tex
+        last_layer = cmd.layer
+    }
 }
