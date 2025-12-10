@@ -77,7 +77,7 @@ queue_end :: proc(this : ^Draw_Queue) {
     last_tex : sg.View
     last_layer : u32
 
-
+    
 }
 
 queue_commit :: proc(this : Draw_Queue) {
