@@ -4,16 +4,16 @@ import "core:sort"
 
 import sg "sokol:gfx/"
 
-import "../util"
+import "../math"
 
 MAX_CMDS_PER_QUEUE :: 1024
 MAX_BATCHES_PER_QUEUE :: 128
 
 Draw_Data :: struct{
-    xform : util.Mat4,
-    tint : util.Vec4,
-    uv0 : util.Vec2,
-    uv1 : util.Vec2,
+    xform : math.Mat4,
+    tint : math.Vec4,
+    uv0 : math.Vec2,
+    uv1 : math.Vec2,
 }
 
 Draw_Cmd :: struct {
@@ -26,7 +26,8 @@ Draw_Cmd :: struct {
 
 Draw_Batch :: struct {
     //start inclusive, end exclusive
-    start, end : uint
+    start, end : uint,
+    pip_changed, tex_changed : b8
 }
 
 //functionally the same as a batch but instead points to batches array
@@ -111,6 +112,9 @@ queue_end :: proc(this : ^Draw_Queue) {
         batch.end += 1
 
         if cmd.pipeline != last_pip || cmd.tex != last_tex || cmd.layer != last_layer {
+            if cmd.pipeline != last_pip do this.batches[this.batch_top].pip_changed = true
+            if cmd.tex != last_tex do this.batches[this.batch_top].tex_changed = true
+
             this.batch_top += 1
             this.batches[this.batch_top].start = uint(i)
         }

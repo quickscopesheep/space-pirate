@@ -6,7 +6,7 @@ import sg "sokol:gfx/"
 import sglue "sokol:glue/"
 import slog "sokol:log/"
 
-import "../util"
+import "../math"
 import "../shaders"
 
 SAMPLE_COUNT :: 8
@@ -95,12 +95,8 @@ init_framebuffer :: proc(w, h : int) {
 }
 
 init_pipelines :: proc() {
-    pipelines.world_lit = sg.make_pipeline({
-        shader = sg.make_shader(shaders.world_lit_shader_desc(sg.query_backend()))
-
-        //pipeline shit
-        
-    })
+    world_lit_desc := default_rect_pipeline_desc(shaders.world_lit_shader_desc(sg.query_backend()))
+    pipelines.world_lit = sg.make_pipeline(world_lit_desc)
 }
 
 @private
@@ -136,9 +132,29 @@ end :: proc() {
     //WORLD PASS
     world_layer := queue.layers[DRAW_LAYER_WORLD]
     for batch in queue.batches[world_layer.batch_start:world_layer.batch_end] {
+        if batch.pip_changed do sg.apply_pipeline(queue.cmds[batch.start].pipeline)
+        if batch.tex_changed do sg.apply_bindings({
+            vertex_buffers ={
+                0 = common_resources.rect_vtx_buffer
+            },
+
+            index_buffer = common_resources.rect_idx_buffer,
+
+            views = {
+                0 = queue.cmd_view,
+                1 = queue.cmds[batch.start].tex,
+            },
+            samplers = {
+                0 = common_resources.samplers[.POINT_REPEAT]
+            }
+        })
+
+        sg.draw(0, 6, batch.end - batch.start)
     }
 
     sg.end_pass()
+
+    sg.commit()
 }
 
 //draw_world_sprite :: proc (xform : util.Mat4, sprite : Sprite, tint := util.Vec4{1, 1, 1, 1}, ppu : int = 16) {

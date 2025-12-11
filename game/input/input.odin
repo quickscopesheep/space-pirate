@@ -1,6 +1,6 @@
 package input
 
-import "../util"
+import "../math"
 
 Key :: enum i32 {
     INVALID = 0,
@@ -156,7 +156,7 @@ Event :: struct {
     action : Event_Action,
     key : Key,
     mb : Mouse_Button,
-    cursor : util.Vec2,
+    cursor : math.Vec2,
     scroll : f32
 }
 
@@ -169,9 +169,9 @@ keys : #sparse [Key] Input_Bits
 mbs : #sparse [Mouse_Button] Input_Bits
 
 @private
-mouse_pos : util.Vec2
+mouse_pos : math.Vec2
 @private
-delta_mouse_pos : util.Vec2
+delta_mouse_pos : math.Vec2
 @private
 mouse_scroll : f32
 @private
@@ -244,7 +244,7 @@ get_mb_up :: proc(mb : Mouse_Button) -> bool {
     return .RELEASED in mbs[mb]
 }
 
-get_mouse_pos :: proc() -> util.Vec2 {
+get_mouse_pos :: proc() -> math.Vec2 {
     return mouse_pos
 }
 
@@ -252,7 +252,7 @@ get_mouse_scroll :: proc() -> f32 {
     return mouse_scroll
 }
 
-get_delta_mouse_pos :: proc() -> util.Vec2 {
+get_delta_mouse_pos :: proc() -> math.Vec2 {
     return delta_mouse_pos
 }
 

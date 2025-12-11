@@ -3,11 +3,8 @@ package game
 import "core:fmt"
 import "core:mem"
 
-import "core:math"
-import "core:math/linalg"
-
 import "gfx"
-import "util"
+import "math"
 import "input"
 
 MAX_ENTITIES :: 256
@@ -32,10 +29,10 @@ Entity :: struct {
     id : Entity_Id,
     kind : Entity_Kind,
 
-    pos, last_pos : util.Vec3,
+    pos, last_pos : math.Vec3,
 
     roll, last_roll : f32,
-    scale : util.Vec3,
+    scale : math.Vec3,
 
     dir : f32
 }

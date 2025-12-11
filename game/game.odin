@@ -2,12 +2,13 @@ package game
 
 import "base:runtime"
 import "core:mem"
-import "core:math"
 import "core:time"
+
+import stdmath "core:math"
 
 import "core:fmt"
 
-import "util"
+import "math"
 import "input"
 import "gfx"
 
@@ -43,8 +44,9 @@ game_tick :: proc() {
 }
 
 game_draw :: proc(alpha : f32) {
+    gfx.begin()
     entity_draw(alpha)
-
+    gfx.end()
 }
 
 game_loop :: proc() {
@@ -54,7 +56,7 @@ game_loop :: proc() {
     prev_time = time.tick_now()
 
     acc += frame_duration
-    num_ticks := int(math.floor(acc / GAME_DELTA_TIME))
+    num_ticks := int(stdmath.floor(acc / GAME_DELTA_TIME))
     acc -= f64(num_ticks) * GAME_DELTA_TIME
 
     if num_ticks > 0 {
