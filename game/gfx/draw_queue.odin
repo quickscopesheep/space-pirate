@@ -9,11 +9,13 @@ import "../math"
 MAX_CMDS_PER_QUEUE :: 1024
 MAX_BATCHES_PER_QUEUE :: 128
 
-Draw_Data :: struct{
-    xform : math.Mat4,
-    tint : math.Vec4,
-    uv0 : math.Vec2,
-    uv1 : math.Vec2,
+Draw_Data :: struct  #align(16) {
+    using _: struct #packed {
+        xform : math.Mat4,
+        tint : math.Vec4,
+        uv0 : math.Vec2,
+        uv1 : math.Vec2,
+    }
 }
 
 Draw_Cmd :: struct {
@@ -25,28 +27,24 @@ Draw_Cmd :: struct {
 }
 
 Draw_Batch :: struct {
-    //start inclusive, end exclusive
-    start, end : uint,
-    pip_changed, tex_changed : b8
-}
-
-//functionally the same as a batch but instead points to batches array
-Draw_Layer :: struct {
-    batch_start : uint,
-    batch_end : uint
+    start, size : int,
+    pip : sg.Pipeline,
+    tex : sg.View,
+    layer : u32
 }
 
 Draw_Queue :: struct{
     cmds : [MAX_CMDS_PER_QUEUE] Draw_Cmd,
     cmd_top : int,
-    batches : [MAX_BATCHES_PER_QUEUE] Draw_Batch,
-    batch_top : int,
 
-    packed_data : [MAX_CMDS_PER_QUEUE]Draw_Data,
+    packed_data : [MAX_CMDS_PER_QUEUE] Draw_Data,
     cmd_buffer : sg.Buffer,
     cmd_view : sg.View,
 
-    layers : [MAX_GFX_LAYERS]Draw_Layer
+    batches : [MAX_BATCHES_PER_QUEUE] Draw_Batch,
+    batch_top : int,
+
+    layer_starts : [MAX_GFX_LAYERS] int
 }
 
 queue_init :: proc(this : ^Draw_Queue) {
@@ -64,6 +62,7 @@ queue_init :: proc(this : ^Draw_Queue) {
 
 queue_begin :: proc(this : ^Draw_Queue)  {
     this.cmd_top = 0
+    this.batch_top = 0
 }
 
 queue_push_cmd :: proc(this : ^Draw_Queue, cmd : Draw_Cmd) {
@@ -101,26 +100,35 @@ queue_end :: proc(this : ^Draw_Queue) {
 
     sort.sort(it)
 
-    last_pip : sg.Pipeline
-    last_tex : sg.View
-    last_layer : u32
+    last_pip := this.cmds[0].pipeline
+    last_tex := this.cmds[0].tex
+    last_layer := this.cmds[0].layer
 
     for i in 0..<this.cmd_top {
-        cmd := this.cmds[i]
+        cmd := &this.cmds[i]
+        queue.packed_data[i] = cmd.payload
+
         batch := &this.batches[this.batch_top]
+        batch.size += 1
 
-        batch.end += 1
+        if cmd.pipeline != last_pip || cmd.tex != last_tex || cmd.layer != last_layer || i == this.cmd_top-1 {
+            batch.pip = last_pip
+            batch.tex = last_tex
+            batch.layer = last_layer
 
-        if cmd.pipeline != last_pip || cmd.tex != last_tex || cmd.layer != last_layer {
-            if cmd.pipeline != last_pip do this.batches[this.batch_top].pip_changed = true
-            if cmd.tex != last_tex do this.batches[this.batch_top].tex_changed = true
+            if cmd.layer != last_layer do this.layer_starts[cmd.layer] = this.batch_top
 
             this.batch_top += 1
-            this.batches[this.batch_top].start = uint(i)
+            this.batches[this.batch_top].start = i
         }
 
         last_pip = cmd.pipeline
         last_tex = cmd.tex
         last_layer = cmd.layer
     }
+
+    sg.update_buffer(this.cmd_buffer, {
+        ptr = &this.packed_data[0],
+        size = uint(this.cmd_top * size_of(Draw_Data))
+    })
 }

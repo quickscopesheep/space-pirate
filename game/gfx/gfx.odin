@@ -4,9 +4,11 @@ import sg "sokol:gfx/"
 import sglue "sokol:glue/"
 import slog "sokol:log/"
 
+import "../shaders"
+
 MAX_GFX_LAYERS :: 16
 
-Common_Samplers :: enum{
+Common_Samplers :: enum {
     LINEAR_REPEAT,
     POINT_REPEAT,
     POINT_CLAMP
@@ -20,7 +22,9 @@ common_resources : struct {
     default_tex : struct{
         img : sg.Image,
         view : sg.View
-    }
+    },
+
+    blit_pipeline : #sparse [sg.Pixel_Format] Maybe(sg.Pipeline)
 }
 
 viewport_width, viewport_height : int
@@ -28,10 +32,10 @@ viewport_width, viewport_height : int
 @private
 init_common_resources :: proc() {
     vertices := []f32 {
-        -0.5, 0.5, 0,   0, 1,
-        0.5, 0.5, 0,    1, 1,
-        0.5, -0.5, 0,   1, 0,
-        -0.5, -0.5, 0,  0, 0
+        -0.5, 0.5,   0, 1,
+        0.5, 0.5,    1, 1,
+        0.5, -0.5,   1, 0,
+        -0.5, -0.5,  0, 0
     }
 
     indices := []u16 {
@@ -50,6 +54,10 @@ init_common_resources :: proc() {
         data = {
             ptr = &indices[0],
             size = len(indices)* size_of(u16)
+        },
+
+        usage = {
+            index_buffer = true
         }
     })
 
@@ -91,6 +99,86 @@ init_common_resources :: proc() {
     common_resources.default_tex.view = sg.make_view({
         texture = {image = common_resources.default_tex.img}
     })
+
+    common_resources.blit_pipeline[.RGBA8] = sg.make_pipeline(
+        default_rect_pipeline_desc(
+            shaders.blit_shader_desc(sg.query_backend()),
+            .RGBA8
+        )
+    )
+    common_resources.blit_pipeline[.RGBA16] = sg.make_pipeline(
+        default_rect_pipeline_desc(
+            shaders.blit_shader_desc(sg.query_backend()),
+            .RGBA16
+        )
+    )
+}
+
+blit_swapchain :: proc(image : sg.View) {
+    format := sglue.swapchain().color_format
+    pipeline := common_resources.blit_pipeline[format].(sg.Pipeline)
+
+    sg.begin_pass({
+        swapchain = sglue.swapchain(),
+    })
+
+    sg.apply_pipeline(pipeline)
+    sg.apply_bindings({
+        vertex_buffers = {
+            0 = common_resources.rect_vtx_buffer
+        },
+        index_buffer = common_resources.rect_idx_buffer,
+
+        views = {
+            shaders.VIEW_blit_tex = image
+        },
+        samplers = {
+            0 = common_resources.samplers[.POINT_CLAMP]
+        }
+    })
+
+    sg.draw(0, 6, 1)
+
+    sg.end_pass()
+}
+
+blit_framebuffer :: proc(image : sg.View, fb : sg.View) {
+    format := sg.query_image_pixelformat(
+        sg.query_view_image(fb)
+    )
+    pipeline := common_resources.blit_pipeline[format].(sg.Pipeline)
+
+    sg.begin_pass({
+        attachments = {
+            colors = {
+                0 = fb
+            }
+        }
+    })
+
+    sg.apply_pipeline(pipeline)
+    sg.apply_bindings({
+        vertex_buffers = {
+            0 = common_resources.rect_vtx_buffer
+        },
+        index_buffer = common_resources.rect_idx_buffer,
+
+        views = {
+            shaders.VIEW_blit_tex = image
+        },
+        samplers = {
+            0 = common_resources.samplers[.POINT_CLAMP]
+        }
+    })
+
+    sg.draw(0, 6, 1)
+
+    sg.end_pass()
+}
+
+blit :: proc {
+    blit_swapchain,
+    blit_framebuffer
 }
 
 setup :: proc(w, h : int) {

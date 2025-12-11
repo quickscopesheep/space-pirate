@@ -46,6 +46,18 @@ game_tick :: proc() {
 game_draw :: proc(alpha : f32) {
     gfx.begin()
     entity_draw(alpha)
+
+    gfx.queue_push_cmd(&gfx.queue, {
+        payload = {
+            xform = math.xform_make(),
+            tint = {1, 0, 0, 1}
+        },
+
+        pipeline = gfx.pipelines.world_lit,
+        tex = gfx.common_resources.default_tex.view,
+        layer = gfx.DRAW_LAYER_WORLD
+    })
+
     gfx.end()
 }
 

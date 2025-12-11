@@ -2,6 +2,8 @@
 @header import sg "sokol:gfx/"
 @header import "core:math/linalg/glsl"
 
+@module blit
+
 @vs vs
 in vec2 pos;
 in vec2 uv;
@@ -9,7 +11,7 @@ in vec2 uv;
 out vec2 vertex_uv;
 
 void main() {
-    gl_Position = vec4(pos.xy, 0, 1.0);
+    gl_Position = vec4(pos.xy*2, 0, 1.0);
     vertex_uv = uv;
 }
 

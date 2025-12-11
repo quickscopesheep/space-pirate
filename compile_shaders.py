@@ -2,7 +2,7 @@ import os
 
 #TODO: Make not shit
 
-PARAMS = "--slang hlsl5:wgsl --format sokol_odin"
+PARAMS = "--slang hlsl5:wgsl:glsl430 --format sokol_odin"
 
 def get_all_files_of_extension(dir, extension):
     dirs = os.listdir(dir)
