@@ -49,7 +49,7 @@ game_draw :: proc(alpha : f32) {
 
     gfx.queue_push_cmd(&gfx.queue, {
         payload = {
-            xform = math.xform_make(),
+            xform = gfx.VP * math.xform_make(pos={0, 0, 5}, roll=math.roll_make(0)),
             tint = {1, 0, 0, 1}
         },
 

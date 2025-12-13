@@ -18,6 +18,10 @@ DRAW_LAYER_UI :: 1
 DRAW_LAYER_DEBUG :: 2
 
 queue : Draw_Queue
+scrollx, scrolly : f32
+zoom : f32
+
+VP : math.Mat4
 
 pipelines : struct {
     world_lit : sg.Pipeline
@@ -36,7 +40,7 @@ framebuffer : struct {
 }
 
 @private
-alloc_framebuffer :: proc() {
+_alloc_framebuffer :: proc() {
     framebuffer.color_tex = sg.alloc_image()
     framebuffer.color_resolve_tex = sg.alloc_image()
     framebuffer.depth_tex = sg.alloc_image()
@@ -105,7 +109,7 @@ init_framebuffer :: proc(w, h : int) {
     })
 }
 
-init_pipelines :: proc() {
+_init_pipelines :: proc() {
     world_lit_desc := default_rect_pipeline_desc(shaders.world_lit_shader_desc(sg.query_backend()))
     world_lit_desc.sample_count = SAMPLE_COUNT
     world_lit_desc.colors[0] = {
@@ -119,16 +123,29 @@ init_pipelines :: proc() {
     pipelines.world_lit = sg.make_pipeline(world_lit_desc)
 }
 
+set_scroll :: proc(x, y : f32) {
+    scrollx, scrolly = x, y
+}
+
+set_zoom :: proc(z : f32) {
+    zoom = z
+}
+
 @private
 setup_frontend :: proc() {
-    queue_init(&queue)
+    zoom = 10
 
-    alloc_framebuffer()
+    _init_pipelines()
+    _alloc_framebuffer()
+
     init_framebuffer(viewport_width, viewport_height)
-    init_pipelines()
+    queue_init(&queue)
 }
 
 begin :: proc() {
+    VP = math.projection_make(zoom, f32(viewport_width) / f32(viewport_height)) *
+        math.view_make({scrollx, scrolly, 0}, 0)
+
     queue_begin(&queue)
 }
 
